@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tic Tac Toe</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: sans-serif;
+      background: #f5f5f3;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1a1a1a;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+
+    .mode-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .mode-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 0.5px solid #ccc;
+      background: transparent;
+      cursor: pointer;
+      font-size: 13px;
+      color: #666;
+      transition: all 0.15s;
+    }
+
+    .mode-btn.active {
+      background: #ebebeb;
+      color: #1a1a1a;
+      border-color: #999;
+    }
+
+    .scoreboard {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .score-box {
+      text-align: center;
+    }
+
+    .score-label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .score-value {
+      font-size: 22px;
+      font-weight: 500;
+    }
+
+    .score-value.x { color: #5DCAA5; }
+    .score-value.o { color: #7F77DD; }
+
+    #status {
+      font-size: 15px;
+      color: #666;
+      min-width: 140px;
+      text-align: center;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 8px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      background: #fff;
+      border: 0.5px solid #ccc;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 48px;
+      font-weight: 500;
+      transition: background 0.15s;
+      user-select: none;
+    }
+
+    .cell:hover:not(.taken) { background: #f0f0ee; }
+    .cell.taken { cursor: default; }
+    .cell.x { color: #5DCAA5; }
+    .cell.o { color: #7F77DD; }
+    .cell.win { background: #ebebeb; }
+
+    .btn {
+      padding: 8px 20px;
+      border-radius: 8px;
+      border: 0.5px solid #ccc;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      color: #1a1a1a;
+      transition: background 0.15s;
+    }
+
+    .btn:hover { background: #ebebeb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Tic Tac Toe</h1>
+
+    <div class="mode-buttons">
+      <button class="mode-btn active" id="btn-pvp" onclick="setMode('pvp')">2 Players</button>
+      <button class="mode-btn" id="btn-cpu" onclick="setMode('cpu')">vs Computer</button>
+    </div>
+
+    <div class="scoreboard">
+      <div class="score-box">
+        <div class="score-label">X</div>
+        <div class="score-value x" id="score-x">0</div>
+      </div>
+      <div id="status">X's turn</div>
+      <div class="score-box">
+        <div class="score-label">O</div>
+        <div class="score-value o" id="score-o">0</div>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="cell" id="c0" onclick="move(0)"></div>
+      <div class="cell" id="c1" onclick="move(1)"></div>
+      <div class="cell" id="c2" onclick="move(2)"></div>
+      <div class="cell" id="c3" onclick="move(3)"></div>
+      <div class="cell" id="c4" onclick="move(4)"></div>
+      <div class="cell" id="c5" onclick="move(5)"></div>
+      <div class="cell" id="c6" onclick="move(6)"></div>
+      <div class="cell" id="c7" onclick="move(7)"></div>
+      <div class="cell" id="c8" onclick="move(8)"></div>
+    </div>
+
+    <button class="btn" onclick="reset()">New game</button>
+  </div>
+
+  <script>
+    const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    let board = Array(9).fill(null);
+    let current = 'X';
+    let over = false;
+    let mode = 'pvp';
+    let scores = { X: 0, O: 0 };
+
+    function setMode(m) {
+      mode = m;
+      document.getElementById('btn-pvp').classList.toggle('active', m === 'pvp');
+      document.getElementById('btn-cpu').classList.toggle('active', m === 'cpu');
+      reset();
+    }
+
+    function move(i) {
+      if (over || board[i]) return;
+      place(i, current);
+      if (!over && mode === 'cpu' && current === 'O') {
+        setTimeout(cpuMove, 300);
+      }
+    }
+
+    function place(i, player) {
+      board[i] = player;
+      const cell = document.getElementById('c' + i);
+      cell.textContent = player;
+      cell.classList.add('taken', player.toLowerCase());
+      const w = checkWin();
+      if (w) {
+        w.forEach(idx => document.getElementById('c' + idx).classList.add('win'));
+        scores[player]++;
+        document.getElementById('score-' + player.toLowerCase()).textContent = scores[player];
+        document.getElementById('status').textContent = player + ' wins!';
+        over = true;
+      } else if (board.every(Boolean)) {
+        document.getElementById('status').textContent = "It's a draw!";
+        over = true;
+      } else {
+        current = current === 'X' ? 'O' : 'X';
+        document.getElementById('status').textContent = current + "'s turn";
+      }
+    }
+
+    function checkWin() {
+      for (const [a, b, c] of wins) {
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) return [a, b, c];
+      }
+      return null;
+    }
+
+    function cpuMove() {
+      if (over) return;
+      let idx = bestMove();
+      place(idx, 'O');
+    }
+
+    function bestMove() {
+      // Try to win
+      for (const [a, b, c] of wins) {
+        const cells = [a, b, c];
+        const os = cells.filter(i => board[i] === 'O');
+        const empty = cells.filter(i => !board[i]);
+        if (os.length === 2 && empty.length === 1) return empty[0];
+      }
+      // Block player from winning
+      for (const [a, b, c] of wins) {
+        const cells = [a, b, c];
+        const xs = cells.filter(i => board[i] === 'X');
+        const empty = cells.filter(i => !board[i]);
+        if (xs.length === 2 && empty.length === 1) return empty[0];
+      }
+      // Take center
+      if (!board[4]) return 4;
+      // Take a random empty cell
+      const empties = board.map((v, i) => v ? null : i).filter(v => v !== null);
+      return empties[Math.floor(Math.random() * empties.length)];
+    }
+
+    function reset() {
+      board = Array(9).fill(null);
+      current = 'X';
+      over = false;
+      for (let i = 0; i < 9; i++) {
+        const c = document.getElementById('c' + i);
+        c.textContent = '';
+        c.className = 'cell';
+      }
+      document.getElementById('status').textContent = "X's turn";
+    }
+  </script>
+</body>
+</html>
